@@ -7,29 +7,30 @@
     trivial_numeric_casts, unsafe_code, unstable_features, unused_import_braces
 )]
 
+extern crate base64;
+extern crate email as email_format;
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
-
-extern crate base64;
-extern crate email as email_format;
 extern crate lettre;
 extern crate mime;
 extern crate time;
 extern crate uuid;
 
-pub mod error;
-
-pub use email_format::{Address, Header, Mailbox, MimeMessage, MimeMultipartType};
-use error::Error as EmailError;
-use failure::Error;
-use lettre::{error::Error as LettreError, EmailAddress, Envelope, SendableEmail};
-use mime::Mime;
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
+
+pub use email_format::{Address, Header, Mailbox, MimeMessage, MimeMultipartType};
+use failure::Error;
+use mime::Mime;
 use time::{now, Tm};
 use uuid::Uuid;
+
+use error::Error as EmailError;
+use lettre::{EmailAddress, Envelope, error::Error as LettreError, SendableEmail};
+
+pub mod error;
 
 /// Builds a `MimeMessage` structure
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -130,7 +131,7 @@ impl PartBuilder {
 
     /// Adds a `ContentType` header with the given MIME type
     pub fn content_type(self, content_type: &Mime) -> PartBuilder {
-        self.header(("Content-Type", format!("{}", content_type).as_ref()))
+        self.header(("Content-Type".to_string(), format!("{}", content_type).to_string()))
     }
 
     /// Adds a child part
@@ -299,8 +300,8 @@ impl EmailBuilder {
         let text = PartBuilder::new()
             .body(body)
             .header((
-                "Content-Type",
-                format!("{}", mime::TEXT_PLAIN_UTF_8).as_ref(),
+                "Content-Type".to_string(),
+                format!("{}", mime::TEXT_PLAIN_UTF_8).to_string(),
             ))
             .build();
         self.child(text)
@@ -311,8 +312,8 @@ impl EmailBuilder {
         let html = PartBuilder::new()
             .body(body)
             .header((
-                "Content-Type",
-                format!("{}", mime::TEXT_HTML_UTF_8).as_ref(),
+                "Content-Type".to_string(),
+                format!("{}", mime::TEXT_HTML_UTF_8).to_string(),
             ))
             .build();
         self.child(html)
@@ -328,7 +329,7 @@ impl EmailBuilder {
             .body(body_text)
             .header((
                 "Content-Type",
-                format!("{}", mime::TEXT_PLAIN_UTF_8).as_ref(),
+                format!("{}", mime::TEXT_PLAIN_UTF_8).to_string(),
             ))
             .build();
 
@@ -336,7 +337,7 @@ impl EmailBuilder {
             .body(body_html)
             .header((
                 "Content-Type",
-                format!("{}", mime::TEXT_HTML_UTF_8).as_ref(),
+                format!("{}", mime::TEXT_HTML_UTF_8).to_string(),
             ))
             .build();
 
@@ -376,7 +377,7 @@ impl EmailBuilder {
         }
         // Add the sender header, if any.
         if let Some(ref v) = self.sender {
-            self.message = self.message.header(("Sender", v.to_string().as_ref()));
+            self.message = self.message.header(("Sender".to_string(), v.to_string()));
         }
         // Calculate the envelope
         let envelope = match self.envelope {
@@ -454,7 +455,7 @@ impl EmailBuilder {
 
         if !self.date_issued {
             self.message = self.message
-                .header(("Date", Tm::rfc822z(&now()).to_string().as_ref()));
+                .header(("Date".to_string(), Tm::rfc822z(&now()).to_string().to_string()));
         }
 
         self.message = self.message.header(("MIME-Version", "1.0"));
@@ -463,7 +464,7 @@ impl EmailBuilder {
 
         if let Ok(header) = Header::new_with_value(
             "Message-ID".to_string(),
-            format!("<{}.lettre@localhost>", message_id),
+            format!("<{}.lettre@localhost>", message_id).to_string(),
         ) {
             self.message = self.message.header(header)
         }
@@ -478,9 +479,11 @@ impl EmailBuilder {
 
 #[cfg(test)]
 mod test {
-    use super::{EmailBuilder, SendableEmail};
-    use lettre::EmailAddress;
     use time::now;
+
+    use lettre::EmailAddress;
+
+    use super::{EmailBuilder, SendableEmail};
 
     #[test]
     fn test_multiple_from() {

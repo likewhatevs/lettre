@@ -13,18 +13,20 @@ extern crate mime;
 extern crate time;
 extern crate uuid;
 
-pub mod error;
-
-pub use email_format::{Address, Header, Mailbox, MimeMessage, MimeMultipartType};
-use error::Error;
-use lettre::{EmailAddress, Envelope, Error as EmailError, SendableEmail};
-use mime::Mime;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::str::FromStr;
+
+pub use email_format::{Address, Header, Mailbox, MimeMessage, MimeMultipartType};
+use mime::Mime;
 use time::{now, Tm};
 use uuid::Uuid;
-use std::str::FromStr;
+
+use error::Error;
+use lettre::{EmailAddress, Envelope, Error as EmailError, SendableEmail};
+
+pub mod error;
 
 /// Converts an address or an address with an alias to a `Header`
 pub trait IntoHeader {
@@ -384,7 +386,7 @@ impl PartBuilder {
 
     /// Adds a `ContentType` header with the given MIME type
     pub fn set_content_type(&mut self, content_type: &Mime) {
-        self.add_header(("Content-Type", format!("{}", content_type).as_ref()));
+        self.add_header(("Content-Type", format!("{}", content_type)));
     }
 
     /// Adds a child part
@@ -662,7 +664,7 @@ impl EmailBuilder {
             .body(body)
             .header((
                 "Content-Type",
-                format!("{}", mime::TEXT_PLAIN_UTF_8).as_ref(),
+                format!("{}", mime::TEXT_PLAIN_UTF_8),
             ))
             .build();
         self.add_child(text);
@@ -680,7 +682,7 @@ impl EmailBuilder {
             .body(body)
             .header((
                 "Content-Type",
-                format!("{}", mime::TEXT_HTML_UTF_8).as_ref(),
+                format!("{}", mime::TEXT_HTML_UTF_8),
             ))
             .build();
         self.add_child(html);
@@ -709,7 +711,7 @@ impl EmailBuilder {
             .body(body_text)
             .header((
                 "Content-Type",
-                format!("{}", mime::TEXT_PLAIN_UTF_8).as_ref(),
+                format!("{}", mime::TEXT_PLAIN_UTF_8),
             ))
             .build();
 
@@ -717,7 +719,7 @@ impl EmailBuilder {
             .body(body_html)
             .header((
                 "Content-Type",
-                format!("{}", mime::TEXT_HTML_UTF_8).as_ref(),
+                format!("{}", mime::TEXT_HTML_UTF_8),
             ))
             .build();
 
@@ -762,7 +764,7 @@ impl EmailBuilder {
         }
         // Add the sender header, if any.
         if let Some(ref v) = self.sender_header {
-            self.message.add_header(("Sender", v.to_string().as_ref()));
+            self.message.add_header(("Sender", v.to_string()));
         }
         // Calculate the envelope
         let envelope = match self.envelope {
@@ -843,7 +845,7 @@ impl EmailBuilder {
 
         if !self.date_issued {
             self.message
-                .add_header(("Date", Tm::rfc822z(&now()).to_string().as_ref()));
+                .add_header(("Date", Tm::rfc822z(&now()).to_string()));
         }
 
         self.message.add_header(("MIME-Version", "1.0"));
@@ -905,9 +907,11 @@ pub trait ExtractableEmail {
 
 #[cfg(test)]
 mod test {
-    use super::EmailBuilder;
-    use lettre::{EmailAddress, SendableEmail};
     use time::now;
+
+    use lettre::{EmailAddress, SendableEmail};
+
+    use super::EmailBuilder;
 
     #[test]
     fn test_multiple_from() {
